@@ -197,13 +197,15 @@ int main(int nArgs, char* chArgs[]) {
     }
     if (nArgs>4) {
         p1 = std::stof(chArgs[4]);
-        std::cout << "p1: " << p1 << "\n";
+        p2 = 1.0f - p1;
     }
 
     if (nArgs>5) {
         p2 = std::stof(chArgs[5]);
-        std::cout << "p2: " << p2 << "\n";
     }
+
+    std::cout << "p1: " << p1 << "\n";
+    std::cout << "p2: " << p2 << "\n";
 
     int width1 = -1;
     int height1 = -1;
