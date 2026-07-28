@@ -25,6 +25,9 @@ constexpr float kSampleRateHz = 8192.0f;   // Fs/N = 4 Hz per bin, so integer-Hz
 constexpr int kNumTones = 4;
 constexpr float kToneFreqsHz[kNumTones]    = {200.0f, 440.0f, 880.0f, 1760.0f};
 constexpr float kToneAmplitudes[kNumTones] = {1.0f, 0.75f, 0.5f, 0.25f};
+// Spans (-pi, pi] so negative phases (i.e. negative spectral lines) are exercised too.
+constexpr float kTonePhasesRad[kNumTones]  = {-2.0f * static_cast<float>(M_PI) / 3.0f, -static_cast<float>(M_PI) / 6.0f,
+                                               static_cast<float>(M_PI) / 3.0f, 5.0f * static_cast<float>(M_PI) / 6.0f};
 
 }  // namespace
 
@@ -37,7 +40,8 @@ int main() {
     CUDA_CHECK(cudaMalloc(&d_spectrum, numSpectrumBins * sizeof(cufftComplex)));
 
     // Signal generation (the 4-tone mix) runs on the GPU.
-    generateSignalOnGpu(d_signal, kFftSize, kSampleRateHz, kToneFreqsHz, kToneAmplitudes, kNumTones);
+    generateSignalOnGpu(d_signal, kFftSize, kSampleRateHz, kToneFreqsHz, kToneAmplitudes,
+                        kTonePhasesRad, kNumTones);
 
     cufftHandle plan;
     CUFFT_CHECK(cufftPlan1d(&plan, kFftSize, CUFFT_R2C, 1));
@@ -49,15 +53,18 @@ int main() {
                           numSpectrumBins * sizeof(cufftComplex), cudaMemcpyDeviceToHost));
 
     // cuFFT's R2C transform is unnormalized: for a tone at an exact bin, the
-    // complex magnitude at that bin equals amplitude * kFftSize / 2.
-    std::cout << "bin\tfreq(Hz)\tmagnitude" << std::endl;
+    // complex magnitude at that bin equals amplitude * kFftSize / 2, and its
+    // angle equals that tone's phase (because the signal is generated with
+    // cos(), matching the FFT's cosine/sine basis with no offset to correct for).
+    std::cout << "bin\tfreq(Hz)\tmagnitude\tphase(deg)" << std::endl;
     for (int bin = 0; bin < numSpectrumBins; ++bin) {
         const float re = h_spectrum[bin].x;
         const float im = h_spectrum[bin].y;
         const float magnitude = std::sqrt(re * re + im * im) / (kFftSize / 2.0f);
         if (magnitude > 0.05f) {
             const float freqHz = bin * kSampleRateHz / kFftSize;
-            std::cout << bin << "\t" << freqHz << "\t\t" << magnitude << std::endl;
+            const float phaseDeg = std::atan2(im, re) * 180.0f / static_cast<float>(M_PI);
+            std::cout << bin << "\t" << freqHz << "\t\t" << magnitude << "\t\t" << phaseDeg << std::endl;
         }
     }
 

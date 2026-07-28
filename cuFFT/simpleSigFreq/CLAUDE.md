@@ -2,8 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-This project should generate a 4-tone sinusoidal mixed signal with different frequencies and amplitudes for each 
-tone component
+This project should generate a 4-tone sinusoidal mixed signal with different frequencies, amplitudes and phases for each 
+tone component. The phases should be between -pi and pi, thus contain negative spectral lines.
 
 Using the cuFFT library from NVIDIA it should perform a time to frequency domain transform on the GPU.
 FFT size is 2048 samples and a rectangular window.
@@ -27,8 +27,8 @@ The build produces a `simpleSigFreq` executable in the `exe/` subdirectory. Ther
 ## Architecture
 
 - `CMakeLists.txt` — CMake config (CMake 4.1+, C++20/CUDA 20), builds `simpleSigFreq` from `main.cpp` + `main.cu`, links `CUDA::cufft`, outputs to `exe/`.
-- `main.cu` — `generateSignalOnGpu()`: copies tone freqs/amplitudes to the device and launches `generateSignalKernel`, which sums the 4 sinusoids per-sample on the GPU (rectangular window, i.e. no tapering).
-- `main.cpp` — entry point: allocates the real input buffer (2048 floats) and complex output buffer (`kFftSize/2+1` `cufftComplex`, R2C Hermitian symmetry), calls `generateSignalOnGpu`, runs `cufftPlan1d`/`cufftExecR2C`, then prints magnitude/frequency for bins above a threshold.
+- `main.cu` — `generateSignalOnGpu()`: copies tone freqs/amplitudes/phases to the device and launches `generateSignalKernel`, which sums the 4 cosine tones per-sample on the GPU (rectangular window, i.e. no tapering). Tones are generated with `cos()` rather than `sin()` so a bin's FFT phase equals that tone's input phase directly, with no constant offset to correct for.
+- `main.cpp` — entry point: allocates the real input buffer (2048 floats) and complex output buffer (`kFftSize/2+1` `cufftComplex`, R2C Hermitian symmetry), calls `generateSignalOnGpu`, runs `cufftPlan1d`/`cufftExecR2C`, then prints magnitude/frequency/phase for bins above a magnitude threshold.
 - `signal_kernels.cuh` — shared declaration of `generateSignalOnGpu`, included by both `main.cpp` (caller) and `main.cu` (definition, needs nvcc for the kernel launch).
 - `cuda_check.cuh` — shared `CUDA_CHECK` error-checking macro; `main.cpp` additionally defines a local `CUFFT_CHECK` macro for cuFFT return codes.
 
