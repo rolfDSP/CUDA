@@ -36,3 +36,9 @@ To build, simply
 - Navigate into it and call cmake ..
 - Build the program with make
 - The executable will be available in a /exe subdirectory under the project root. Two example images are there in the repository.
+
+Requirements:
+Ubuntu 24.04
+CMake
+libjpeg-dev
+CUDA development environment
