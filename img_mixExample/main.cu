@@ -195,12 +195,12 @@ int main(int nArgs, char* chArgs[]) {
         std::cout << "Need at least names of an inputs and output image\n";
         return -1;
     }
-    if (nArgs>=4) {
+    if (nArgs>4) {
         p1 = std::stof(chArgs[4]);
         std::cout << "p1: " << p1 << "\n";
     }
 
-    if (nArgs>=5) {
+    if (nArgs>5) {
         p2 = std::stof(chArgs[5]);
         std::cout << "p2: " << p2 << "\n";
     }
